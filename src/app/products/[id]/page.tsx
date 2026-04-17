@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/product-card';
+import { AddToCartButton } from '@/components/add-to-cart-button';
 import { PRODUCTS, getProduct } from '@/lib/products';
 import { formatINR } from '@/lib/utils';
 import { Leaf, Star, ArrowLeft } from 'lucide-react';
@@ -49,7 +50,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button size="lg">Add to cart</Button>
+            <AddToCartButton product={product} />
             <Button size="lg" variant="outline" asChild>
               <Link href="/chat">Ask the AI concierge</Link>
             </Button>

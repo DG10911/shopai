@@ -154,6 +154,15 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[chat] error', err);
-    return new Response(JSON.stringify({ error: 'AI error' }), { status: 500 });
+    // Graceful fallback: never break the UX — serve catalog matches with a helpful note.
+    const last = messages[messages.length - 1];
+    const hits = searchProducts(last.content).slice(0, 4);
+    const reply = hits.length
+      ? `The AI backend is temporarily unavailable, but here are top catalog matches for "${last.content}":\n\n` +
+        hits.map((p) => `• ${p.name} — ₹${p.price}`).join('\n')
+      : `The AI backend is temporarily unavailable and I couldn't find catalog matches for "${last.content}". Please try a different query.`;
+    return new Response(JSON.stringify({ text: reply, products: hits, tools: [] }), {
+      headers: { 'content-type': 'application/json' },
+    });
   }
 }

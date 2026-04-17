@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
+import { CartProvider } from '@/lib/cart';
+import { CartToast } from '@/components/cart-toast';
 
 export const metadata: Metadata = {
   title: { default: 'ShopAI — Your Agentic Shopping Assistant', template: '%s — ShopAI' },
@@ -27,12 +29,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-dvh flex flex-col">
-        <a href="#main" className="skip-link">Skip to content</a>
-        <Nav />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
-        <Footer />
+        <CartProvider>
+          <a href="#main" className="skip-link">Skip to content</a>
+          <Nav />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <Footer />
+          <CartToast />
+        </CartProvider>
       </body>
     </html>
   );

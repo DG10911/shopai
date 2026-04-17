@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Sparkles, ShoppingBag, LayoutDashboard } from 'lucide-react';
+import { CartIcon } from './cart-icon';
 
 export function Nav() {
   return (
@@ -16,7 +17,7 @@ export function Nav() {
               className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
               <ShoppingBag className="h-4 w-4" aria-hidden />
-              <span>Shop</span>
+              <span className="hidden sm:inline">Shop</span>
             </Link>
           </li>
           <li>
@@ -25,7 +26,7 @@ export function Nav() {
               className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
               <Sparkles className="h-4 w-4" aria-hidden />
-              <span>AI Concierge</span>
+              <span className="hidden sm:inline">AI Concierge</span>
             </Link>
           </li>
           <li>
@@ -34,8 +35,11 @@ export function Nav() {
               className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
               <LayoutDashboard className="h-4 w-4" aria-hidden />
-              <span>Retailer</span>
+              <span className="hidden sm:inline">Retailer</span>
             </Link>
+          </li>
+          <li>
+            <CartIcon />
           </li>
         </ul>
       </nav>

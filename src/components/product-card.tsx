@@ -6,8 +6,14 @@ import { Button } from '@/components/ui/button';
 import { formatINR } from '@/lib/utils';
 import type { Product } from '@/lib/products';
 import { Leaf, Star } from 'lucide-react';
+import { useCart } from '@/lib/cart';
 
 export function ProductCard({ product, onAdd }: { product: Product; onAdd?: (p: Product) => void }) {
+  const { add } = useCart();
+  const handleAdd = () => {
+    if (onAdd) onAdd(product);
+    else add(product, 1);
+  };
   return (
     <Card className="group overflow-hidden transition-shadow hover:shadow-lg">
       <Link
@@ -46,7 +52,7 @@ export function ProductCard({ product, onAdd }: { product: Product; onAdd?: (p: 
         <Button
           size="sm"
           className="w-full"
-          onClick={() => onAdd?.(product)}
+          onClick={handleAdd}
           aria-label={`Add ${product.name} to cart`}
         >
           Add to cart
