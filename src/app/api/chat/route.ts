@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { genai, MODEL_NAME, SYSTEM_INSTRUCTION, shoppingTools } from '@/lib/gemini';
-import { searchProducts, getProduct } from '@/lib/products';
+import { searchProducts, getProduct, PRODUCTS } from '@/lib/products';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -29,8 +29,25 @@ function runTool(name: string, args: Record<string, unknown>): unknown {
       }).slice(0, 6);
     }
     case 'add_to_cart': {
-      const p = getProduct(String(args.productId));
-      if (!p) return { ok: false, error: 'Product not found' };
+      let p = args.productId ? getProduct(String(args.productId)) : undefined;
+      if (!p && args.productName) {
+        const name = String(args.productName).toLowerCase();
+        // Exact name match first, then substring / token score
+        p = PRODUCTS.find((x) => x.name.toLowerCase() === name);
+        if (!p) {
+          const tokens = name.split(/\s+/).filter((t) => t.length > 2);
+          const scored = PRODUCTS.map((x) => {
+            const hay = `${x.name} ${x.tags.join(' ')}`.toLowerCase();
+            let score = 0;
+            for (const t of tokens) if (hay.includes(t)) score += 1;
+            return { x, score };
+          })
+            .filter((s) => s.score > 0)
+            .sort((a, b) => b.score - a.score);
+          p = scored[0]?.x;
+        }
+      }
+      if (!p) return { ok: false, error: 'Product not found', hint: 'Call search_products first, then add_to_cart with the resulting productId.' };
       return { ok: true, added: { id: p.id, name: p.name, price: p.price, quantity: Number(args.quantity ?? 1) } };
     }
     case 'create_bundle': {
