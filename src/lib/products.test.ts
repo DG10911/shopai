@@ -42,4 +42,22 @@ describe('products', () => {
     expect(cats.length).toBeGreaterThanOrEqual(3);
     for (const c of cats) expect(c.revenue).toBeGreaterThan(0);
   });
+
+  it('ranks laptops first when searching "laptop"', () => {
+    const r = searchProducts('laptop');
+    expect(r.length).toBeGreaterThan(0);
+    expect(r[0].tags).toContain('laptop');
+  });
+
+  it('returns gardening items for a birthday gift query', () => {
+    const r = searchProducts('Birthday gift for my mom who loves gardening, under ₹2000');
+    expect(r.length).toBeGreaterThan(0);
+    const joined = r.slice(0, 3).map((p) => p.tags.join(' ')).join(' ');
+    expect(joined).toMatch(/garden|plant|bonsai/);
+  });
+
+  it('ignores pure stop-word queries and still returns something', () => {
+    const r = searchProducts('the a with for');
+    expect(r.length).toBeGreaterThan(0);
+  });
 });
