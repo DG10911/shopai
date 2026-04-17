@@ -1,14 +1,39 @@
 import { GoogleGenAI, Type, type FunctionDeclaration, type ToolUnion } from '@google/genai';
 
+/**
+ * ShopAI supports two auth modes:
+ *
+ * 1) Vertex AI (PRODUCTION — recommended)
+ *    - Uses Google Cloud Application Default Credentials.
+ *    - Enable by setting GOOGLE_CLOUD_PROJECT (+ optional GOOGLE_CLOUD_LOCATION).
+ *    - On Cloud Run, the service account automatically has ADC.
+ *    - No API key required.
+ *
+ * 2) Gemini API (dev / demo)
+ *    - Uses an AI-Studio-issued API key (AIzaSy…).
+ *    - Enable by setting GEMINI_API_KEY.
+ */
 const API_KEY = process.env.GEMINI_API_KEY;
+const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+const GCP_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-if (!API_KEY && process.env.NODE_ENV === 'production') {
+let client: GoogleGenAI | null = null;
+let mode: 'vertex' | 'apikey' | 'disabled' = 'disabled';
+
+if (GCP_PROJECT) {
+  client = new GoogleGenAI({ vertexai: true, project: GCP_PROJECT, location: GCP_LOCATION });
+  mode = 'vertex';
+} else if (API_KEY) {
+  client = new GoogleGenAI({ apiKey: API_KEY });
+  mode = 'apikey';
+} else if (process.env.NODE_ENV === 'production') {
   // eslint-disable-next-line no-console
-  console.warn('[gemini] GEMINI_API_KEY is not set — AI features will be disabled.');
+  console.warn('[gemini] No GOOGLE_CLOUD_PROJECT or GEMINI_API_KEY — AI features disabled.');
 }
 
-export const genai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+export const genai = client;
+export const AI_MODE = mode;
 export const MODEL_NAME = MODEL;
 
 // Function-calling tool schema. Gemini will decide when to call these.
