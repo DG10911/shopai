@@ -312,6 +312,6 @@ Returns `{ insights: string[], source: 'gemini' | 'fallback' }`
 
 ---
 
-Built by **Pranay** for the **AMD Slingshot × Hack2Skill 2026 — Retail & E-commerce App** challenge.
+Built by **DEVANSH** for the **AMD Slingshot × Hack2Skill 2026 — Retail & E-commerce App** challenge.
 
 License: [MIT](./LICENSE)
