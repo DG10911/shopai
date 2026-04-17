@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/product-card';
-import type { Product } from '@/lib/products';
+import { PRODUCTS, type Product } from '@/lib/products';
+import { useCart } from '@/lib/cart';
 import { Sparkles, Send, Mic, Camera, Bot, User, Loader2, X } from 'lucide-react';
 
 type Msg = { role: 'user' | 'model'; content: string; image?: string; products?: Product[] };
+type ToolResult = { name: string; result: unknown };
 
 const SUGGESTIONS = [
   'Birthday gift for my mom who loves gardening, under ₹2000',
@@ -17,11 +19,12 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatPage() {
+  const { add } = useCart();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: 'model',
       content:
-        "Hi! I'm ShopAI — your shopping concierge. Tell me what you're looking for, or drop a photo of something you love.",
+        "Hi! I'm ShopAI — your shopping concierge. Tell me what you're looking for, or drop a photo of something you love. Say \"add to cart\" after a suggestion and I'll add it for you.",
     },
   ]);
   const [input, setInput] = useState('');
@@ -52,6 +55,19 @@ export default function ChatPage() {
         body: JSON.stringify({ messages: next.map((m) => ({ role: m.role, content: m.content, image: m.image })) }),
       });
       const data = await resp.json();
+
+      // If the AI used the add_to_cart tool, actually add the items to the real cart.
+      if (Array.isArray(data.tools)) {
+        for (const t of data.tools as ToolResult[]) {
+          if (t.name !== 'add_to_cart' || !t.result) continue;
+          const r = t.result as { ok?: boolean; added?: { id?: string; quantity?: number } };
+          if (r.ok && r.added?.id) {
+            const product = PRODUCTS.find((p) => p.id === r.added!.id);
+            if (product) add(product, Math.max(1, r.added.quantity ?? 1));
+          }
+        }
+      }
+
       setMessages((m) => [
         ...m,
         {

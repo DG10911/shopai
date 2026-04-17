@@ -65,6 +65,36 @@ function toGeminiContent(m: z.infer<typeof MessageSchema>) {
   return { role: m.role === 'model' ? 'model' : 'user', parts };
 }
 
+/**
+ * For multimodal input, Gemini sometimes errors when function tools + inline_data
+ * are combined. To make the UX robust, we run a vision-only pre-pass that turns
+ * the image into search keywords, then drop the image from the tool-calling flow.
+ */
+async function describeImage(imageDataUrl: string): Promise<string | null> {
+  if (!genai) return null;
+  const m = imageDataUrl.match(/^data:(.+?);base64,(.+)$/);
+  if (!m) return null;
+  try {
+    const resp = await genai.models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: 'Describe this product in 8 words or fewer, as catalog keywords. Respond ONLY with keywords, no punctuation, no sentences.' },
+            { inlineData: { mimeType: m[1], data: m[2] } },
+          ],
+        },
+      ],
+      config: { temperature: 0.2 },
+    });
+    const t = (resp.text ?? '').trim();
+    return t || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = rateLimit(ip);
@@ -98,6 +128,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Pre-pass: if the latest user message has an image, convert it to keywords
+    // and rewrite the message as text-only. This avoids mixing inline_data with
+    // function tools (which Vertex/Gemini sometimes rejects).
+    const lastIdx = messages.length - 1;
+    const lastMsg = messages[lastIdx];
+    if (lastMsg.role === 'user' && lastMsg.image) {
+      const keywords = await describeImage(lastMsg.image);
+      if (keywords) {
+        const userText = lastMsg.content && lastMsg.content !== '(image)' ? lastMsg.content : '';
+        messages[lastIdx] = {
+          ...lastMsg,
+          content: userText
+            ? `${userText}\n(From the attached image I see: ${keywords}.) Please search for matching items.`
+            : `The user uploaded an image of: ${keywords}. Please search for visually or functionally similar items in the catalog.`,
+          image: undefined,
+        };
+      } else {
+        // vision pre-pass failed — at least replace "(image)" placeholder
+        if (!lastMsg.content || lastMsg.content === '(image)') {
+          messages[lastIdx] = { ...lastMsg, content: 'Help me find something based on the attached image.', image: undefined };
+        }
+      }
+    }
+
     const history = messages.map(toGeminiContent);
 
     // --- Round 1 ---
